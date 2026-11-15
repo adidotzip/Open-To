@@ -1,6 +1,6 @@
 # Open-To
 
-Add an **Open To Work** or **Open To Yap** overlay to your profile picture.
+Add an **Open For Larp** or **Open To Yap** overlay to your profile picture.
 
 ![Open-To preview](https://files.catbox.moe/bzll43.png)
 
