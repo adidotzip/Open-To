@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#fbffe0" />
+    <title>Open-To · Profile picture overlay</title>
+    <meta name="description" content="Add the Open-To overlay to your profile picture." />
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;600;700&display=swap");
+      @import "m3-svelte/etc/styles.css";
+      @import "m3-svelte/etc/recommended-styles.css";
+      @function --m3-density(--size) { result: var(--size); }
+      :root { color-scheme: light dark;
+        --m3c-surface: light-dark(#fbffe0,#0b1000);
+        --m3c-surface-container-lowest: light-dark(#fff,#000);
+        --m3c-surface-container-low: light-dark(#f5ffc6,#101500);
+        --m3c-surface-container: light-dark(#ecfbb1,#161c00);
+        --m3c-surface-container-high: light-dark(#e6f6a7,#1b2300);
+        --m3c-surface-container-highest: light-dark(#dff09e,#212900);
+        --m3c-on-surface: light-dark(#323c0e,#f1fdbd);
+        --m3c-on-surface-variant: light-dark(#5f6937,#a5b177);
+        --m3c-outline: light-dark(#7b8650,#707a46);
+        --m3c-outline-variant: light-dark(#b3bf84,#424c1d);
+        --m3c-inverse-surface: light-dark(#0b1000,#f5ffc6);
+        --m3c-inverse-on-surface: light-dark(#97a26a,#4f5929);
+        --m3c-primary: light-dark(#367200,#98f157);
+        --m3c-on-primary: light-dark(#fff,#285700);
+        --m3c-primary-container: light-dark(#98f157,#61b41e);
+        --m3c-on-primary-container: light-dark(#285700,#0f2800);
+        --m3c-inverse-primary: light-dark(#98f157,#336c00);
+        --m3c-secondary: light-dark(#596c00,#d3ef6a);
+        --m3c-on-secondary: light-dark(#fff,#485800);
+        --m3c-secondary-container: light-dark(#d3ef6a,#546500);
+        --m3c-on-secondary-container: light-dark(#485800,#f0ffb6);
+        --m3c-tertiary: light-dark(#676800,#feff98);
+        --m3c-on-tertiary: light-dark(#fff,#616300);
+        --m3c-tertiary-container: light-dark(#fcfe6b,#f0f261);
+        --m3c-on-tertiary-container: light-dark(#606100,#595a00);
+        --m3c-error: light-dark(#be2d06,#ff7351);
+        --m3c-on-error: light-dark(#fff,#450900);
+        --m3c-error-container: light-dark(#f95630,#b92902);
+        --m3c-on-error-container: light-dark(#520c00,#ffd2c8);
+        --m3c-shadow:#000; --m3c-scrim:#000;
+        --m3c-on-on-primary:light-dark(#357000,#98f057);
+        --m3c-primary-container-subtle:light-dark(#a0f95f,#153300);
+        --m3c-on-primary-container-subtle:light-dark(#2b5d00,#6bbf2a);
+        --m3c-secondary-container-subtle:light-dark(#d3ef6a,#263000);
+        --m3c-on-secondary-container-subtle:light-dark(#485800,#9cb637);
+        --m3c-tertiary-container-subtle:light-dark(#e8e959,#2d2e00);
+        --m3c-on-tertiary-container-subtle:light-dark(#545500,#afb123);
+        --m3c-error-container-subtle:light-dark(#ffdad2,#5a0e00);
+        --m3c-on-error-container-subtle:light-dark(#9e2100,#ff8a6e);
+        --m3c-font: "Google Sans", system-ui, sans-serif;
+      }
+      * { box-sizing:border-box }
+      body { margin:0; min-height:100vh; background:var(--m3c-surface); color:var(--m3c-on-surface); font-family:var(--m3c-font) }
+      main { width:min(100% - 40px, 620px); margin:0 auto; padding:64px 0 48px }
+      header { margin-bottom:32px }
+      h1 { margin:0; font-size:clamp(32px,7vw,44px); font-weight:600; letter-spacing:-.055em }
+      header p { margin:10px 0 0; color:var(--m3c-on-surface-variant); font-size:14px; line-height:1.5 }
+      .workspace { display:grid; grid-template-columns:1fr; gap:22px }
+      .preview-wrap { display:grid; place-items:center; min-height:300px; padding:24px; border:1px solid var(--m3c-outline-variant); border-radius:28px; background:var(--m3c-surface-container-low) }
+      .preview { position:relative; width:min(100%, 260px); aspect-ratio:1; overflow:hidden; border-radius:50%; background:var(--m3c-surface-container-high); }
+      .preview img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover }
+      #overlay { pointer-events:none }
+      .empty { display:grid; place-items:center; height:100%; padding:25px; color:var(--m3c-on-surface-variant); text-align:center; font-size:13px; line-height:1.5 }
+      .controls { display:flex; flex-wrap:wrap; align-items:center; gap:10px }
+      .button { display:inline-flex; align-items:center; justify-content:center; min-height:48px; padding:0 20px; border:1px solid var(--m3c-outline); border-radius:999px; background:transparent; color:var(--m3c-on-surface); font:500 14px var(--m3c-font); cursor:pointer; transition:background .15s, transform .15s }
+      .button:hover { background:var(--m3c-surface-container); }
+      .button:active { transform:scale(.98) }
+      .button.primary { border-color:transparent; background:var(--m3c-primary); color:var(--m3c-on-primary) }
+      .button:disabled { opacity:.45; cursor:not-allowed }
+      input[type=file] { display:none }
+      .hint { margin:12px 0 0; color:var(--m3c-on-surface-variant); font-size:12px; line-height:1.5 }
+      .status { min-height:18px; margin-top:12px; color:var(--m3c-error); font-size:12px }
+      footer { margin-top:32px; color:var(--m3c-on-surface-variant); font-size:12px }
+      @media(max-width:480px) { main { width:min(100% - 28px,620px); padding-top:40px } .preview-wrap { min-height:260px; padding:18px } }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <h1>Open-To</h1>
+        <p>Add the frame to your profile picture. Nothing gets uploaded.</p>
+      </header>
+      <section class="workspace" aria-label="Profile picture editor">
+        <div class="preview-wrap">
+          <div class="preview" id="preview">
+            <div class="empty" id="empty">Your profile picture<br />will appear here</div>
+            <img id="photo" alt="Your uploaded profile picture" hidden />
+            <img id="overlay" src="./assets%3Aimage.svg" alt="" />
+          </div>
+        </div>
+        <div>
+          <div class="controls">
+            <label class="button primary" for="upload">Choose photo</label>
+            <input id="upload" type="file" accept="image/*" />
+            <button class="button" id="download" disabled>Download PNG</button>
+            <button class="button" id="reset" disabled>Remove</button>
+          </div>
+          <p class="hint">PNG, JPG or WEBP. Your image is processed locally in your browser.</p>
+          <div class="status" id="status" role="status" aria-live="polite"></div>
+        </div>
+      </section>
+      <footer>Open-To · Profile picture overlay</footer>
+    </main>
+    <script>
+      const upload = document.getElementById('upload');
+      const photo = document.getElementById('photo');
+      const overlay = document.getElementById('overlay');
+      const empty = document.getElementById('empty');
+      const download = document.getElementById('download');
+      const reset = document.getElementById('reset');
+      const status = document.getElementById('status');
+      let source = null;
+      let overlayReady = false;
+      overlay.addEventListener('load', () => { overlayReady = true; });
+      overlay.addEventListener('error', () => { status.textContent = 'Could not load assets:image.svg. Check that the file is in the repository root.'; });
+      function clearPhoto() {
+        if (source) URL.revokeObjectURL(source);
+        source = null;
+        photo.removeAttribute('src');
+        photo.hidden = true;
+        empty.hidden = false;
+        upload.value = '';
+        download.disabled = true;
+        reset.disabled = true;
+        status.textContent = '';
+      }
+      upload.addEventListener('change', () => {
+        const file = upload.files && upload.files[0];
+        if (!file) return;
+        if (!file.type.startsWith('image/')) { status.textContent = 'Choose an image file.'; return; }
+        if (file.size > 15 * 1024 * 1024) { status.textContent = 'Image must be smaller than 15 MB.'; upload.value = ''; return; }
+        if (source) URL.revokeObjectURL(source);
+        source = URL.createObjectURL(file);
+        photo.onload = () => {
+          photo.hidden = false;
+          empty.hidden = true;
+          download.disabled = false;
+          reset.disabled = false;
+          status.textContent = '';
+        };
+        photo.onerror = () => { status.textContent = 'This image could not be opened. Try another file.'; clearPhoto(); };
+        photo.src = source;
+      });
+      reset.addEventListener('click', clearPhoto);
+      download.addEventListener('click', async () => {
+        if (!photo.complete || !photo.naturalWidth) return;
+        try {
+          if (!overlayReady && !overlay.complete) await new Promise((resolve, reject) => {
+            overlay.addEventListener('load', resolve, { once: true });
+            overlay.addEventListener('error', reject, { once: true });
+          });
+          const canvas = document.createElement('canvas');
+          const size = Math.max(photo.naturalWidth, photo.naturalHeight);
+          canvas.width = size;
+          canvas.height = size;
+          const ctx = canvas.getContext('2d');
+          if (!ctx) throw new Error('Canvas is unavailable in this browser.');
+          const scale = Math.max(size / photo.naturalWidth, size / photo.naturalHeight);
+          const width = photo.naturalWidth * scale;
+          const height = photo.naturalHeight * scale;
+          ctx.drawImage(photo, (size - width) / 2, (size - height) / 2, width, height);
+          ctx.drawImage(overlay, 0, 0, size, size);
+          const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+          if (!blob) throw new Error('Could not create the PNG.');
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = 'open-to-pfp.png';
+          link.click();
+          URL.revokeObjectURL(url);
+          status.textContent = 'Your PNG is ready.';
+        } catch (error) {
+          status.textContent = error instanceof Error ? error.message : 'Could not export this image.';
+        }
+      });
+    </script>
+  </body>
+</html>
