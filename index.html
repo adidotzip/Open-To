@@ -5,7 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#fbffe0" />
     <title>Open-To · Profile picture overlay</title>
-    <meta name="description" content="Add the Open-To overlay to your profile picture." />
+    <meta name="description" content="Make your profile picture Open-To. Upload a photo, choose an Open-To overlay, and download your finished PNG for free. Your image stays in your browser." />
+    <meta name="robots" content="index, follow" />
+    <link rel="canonical" href="https://open-to.vercel.app/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Open-To | Profile Picture Overlay" />
+    <meta property="og:description" content="Add an Open-To overlay to your profile picture and download it for free. No upload required." />
+    <meta property="og:image" content="https://raw.githubusercontent.com/adidotzip/Open-To/main/assets%3Aopentoyap.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Open-To | Profile Picture Overlay" />
+    <meta name="twitter:description" content="Add an Open-To overlay to your profile picture and download it for free." />
+    <meta name="twitter:image" content="https://raw.githubusercontent.com/adidotzip/Open-To/main/assets%3Aopentoyap.png" />
     <style>
       @import url("https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;600;700&display=swap");
       @import "m3-svelte/etc/styles.css";
@@ -75,6 +85,11 @@
       .button.primary { border-color:transparent; background:var(--m3c-primary); color:var(--m3c-on-primary) }
       .button:disabled { opacity:.45; cursor:not-allowed }
       input[type=file] { display:none }
+      .options { display:flex; flex-wrap:wrap; gap:10px; margin-top:20px; animation:rise-in .7s cubic-bezier(.2,.75,.25,1) .2s both }
+      .option { display:flex; align-items:center; gap:10px; min-height:68px; padding:8px 14px 8px 8px; border:1px solid var(--m3c-outline-variant); border-radius:18px; background:var(--m3c-surface-container-low); color:var(--m3c-on-surface); font:500 13px var(--m3c-font); cursor:pointer; transition:border-color .2s ease,background .2s ease,transform .2s ease }
+      .option:hover { transform:translateY(-2px); border-color:var(--m3c-outline) }
+      .option[aria-pressed="true"] { border-color:var(--m3c-primary); background:var(--m3c-primary-container); color:var(--m3c-on-primary-container) }
+      .option img { width:48px; height:48px; object-fit:contain; border-radius:12px; background:#000 }
       .hint { margin:12px 0 0; color:var(--m3c-on-surface-variant); font-size:12px; line-height:1.5; animation:rise-in .7s cubic-bezier(.2,.75,.25,1) .22s both }
       .status { min-height:18px; margin-top:12px; color:var(--m3c-error); font-size:12px; transition:opacity .2s ease }
       footer { margin-top:32px; color:var(--m3c-on-surface-variant); font-size:12px; animation:rise-in .7s cubic-bezier(.2,.75,.25,1) .28s both }
@@ -107,13 +122,23 @@
             <label class="button primary" for="upload">Choose photo</label>
             <input id="upload" type="file" accept="image/*" />
             <button class="button" id="download" disabled>Download PNG</button>
-            <button class="button" id="reset" disabled>Remove</button>
+            <button class="button" id="reset" disabled>Remove photo</button>
+          </div>
+          <div class="options" role="group" aria-label="Choose an overlay">
+            <button class="option" type="button" data-overlay="./assets%3Aimage.svg" aria-pressed="true">
+              <img src="./assets%3Aimage.svg" alt="" />
+              <span>Open To Work</span>
+            </button>
+            <button class="option" type="button" data-overlay="./assets%3Aopentoyap.png" aria-pressed="false">
+              <img src="./assets%3Aopentoyap.png" alt="" />
+              <span>Open To Yap</span>
+            </button>
           </div>
           <p class="hint">PNG, JPG or WEBP. Your image is processed locally in your browser.</p>
           <div class="status" id="status" role="status" aria-live="polite"></div>
         </div>
       </section>
-      <footer>Open-To · Profile picture overlay</footer>
+      <footer>Made by <a href="https://github.com/adidotzip" target="_blank" rel="noopener noreferrer" style="color:inherit;text-decoration:underline;text-underline-offset:3px">adidotzip</a> on <a href="https://github.com/adidotzip/Open-To" target="_blank" rel="noopener noreferrer" style="color:inherit;text-decoration:underline;text-underline-offset:3px">GitHub</a> :heart:</footer>
     </main>
     <script>
       const upload = document.getElementById('upload');
@@ -123,10 +148,21 @@
       const download = document.getElementById('download');
       const reset = document.getElementById('reset');
       const status = document.getElementById('status');
+      const overlayOptions = [...document.querySelectorAll('[data-overlay]')];
       let source = null;
       let overlayReady = false;
+      let selectedOverlay = overlay.src;
       overlay.addEventListener('load', () => { overlayReady = true; });
-      overlay.addEventListener('error', () => { status.textContent = 'Could not load assets:image.svg. Check that the file is in the repository root.'; });
+      overlay.addEventListener('error', () => { overlayReady = false; status.textContent = 'Could not load the selected overlay. Check that the asset exists in the repository root.'; });
+      overlayOptions.forEach(option => {
+        option.addEventListener('click', () => {
+          selectedOverlay = new URL(option.dataset.overlay, window.location.href).href;
+          overlayReady = false;
+          overlay.src = selectedOverlay;
+          overlayOptions.forEach(item => item.setAttribute('aria-pressed', String(item === option)));
+          status.textContent = '';
+        });
+      });
       function clearPhoto() {
         if (source) URL.revokeObjectURL(source);
         source = null;
@@ -159,8 +195,9 @@
       download.addEventListener('click', async () => {
         if (!photo.complete || !photo.naturalWidth) return;
         try {
-          if (!overlayReady && !overlay.complete) await new Promise((resolve, reject) => {
-            overlay.addEventListener('load', resolve, { once: true });
+          if (!overlayReady) await new Promise((resolve, reject) => {
+            if (overlay.complete && overlay.naturalWidth) { overlayReady = true; resolve(); return; }
+            overlay.addEventListener('load', () => { overlayReady = true; resolve(); }, { once: true });
             overlay.addEventListener('error', reject, { once: true });
           });
           const canvas = document.createElement('canvas');
